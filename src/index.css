@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+/* Enable class-based dark mode in Tailwind v4 */
+/* 在 Tailwind v4 中启用基于 .dark 类的主题手动控制 */
+@variant dark (.dark &);
+
+@layer base {
+  /* Globally remove all text shadows to ensure crisp readability / 全局消除所有字体阴影，确保字迹绝对清晰 */
+  * {
+    text-shadow: none !important;
+  }
+  body {
+    @apply antialiased transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)];
+    font-family: 'Inter', system-ui, -apple-system, 'SF Pro Display', sans-serif;
+  }
+}
+
+/* Custom Technology SVG Grid & Luxury Ambient Backdrops */
+/* 自定义科技感 SVG 网格与高端氛围背景 */
+.tech-grid {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+}
+.dark .tech-grid {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+}
+
+/* Smooth cubic bezier transition class */
+/* 极度平滑的贝塞尔缓动过渡类 */
+.transition-luxury {
+  transition-property: all;
+  transition-duration: 400ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Luxury loading scan shimmer keyframes */
+/* 高级加载扫描流光帧动画 */
+@keyframes shimmer-flow {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer-flow {
+  animation: shimmer-flow 1.5s infinite linear;
+}
+
+/* Breathing indicator glow keyframes */
+/* 呼吸指示灯发光帧动画 */
+@keyframes breathing-glow {
+  0%, 100% {
+    opacity: 0.5;
+    filter: drop-shadow(0 0 1px currentColor);
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+}
+
+.animate-breathing-glow {
+  animation: breathing-glow 2s infinite ease-in-out;
+}
+
+/* Global scrollbar styling */
+/* 全局滚动条自适应微调 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.25);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.15);
+  border-radius: 99px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.4);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.3);
+}
+
