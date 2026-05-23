@@ -124,29 +124,76 @@ fn launch_project_internal(p: &Project) -> Result<(), String> {
     Ok(())
 }
 
+/// Resolve the absolute path to `projects.json` with multi-stage fallback and auto-creation.
+/// 解析 `projects.json` 的绝对路径，支持多级回退与自动新建。
+fn resolve_projects_file_path() -> Result<std::path::PathBuf, String> {
+    use std::fs;
+    use std::path::PathBuf;
+
+    // 1. Current working directory
+    // 1. 当前工作目录
+    let cur_path = PathBuf::from("projects.json");
+    if cur_path.exists() {
+        return Ok(cur_path);
+    }
+
+    // 2. Executable directory
+    // 2. 可执行文件同级目录
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let exe_config_path = exe_dir.join("projects.json");
+            if exe_config_path.exists() {
+                return Ok(exe_config_path);
+            }
+        }
+    }
+
+    // 3. System recommended preference directory
+    // 3. 系统推荐偏好目录
+    let recommend_dir = if cfg!(target_os = "windows") {
+        std::env::var("APPDATA")
+            .map(|dir| PathBuf::from(dir).join("Start-Dev-Command"))
+            .ok()
+    } else if cfg!(target_os = "macos") {
+        std::env::var("HOME")
+            .map(|dir| PathBuf::from(dir).join("Library").join("Application Support").join("Start-Dev-Command"))
+            .ok()
+    } else {
+        std::env::var("HOME")
+            .map(|dir| PathBuf::from(dir).join(".config").join("Start-Dev-Command"))
+            .ok()
+    };
+
+    if let Some(dir) = recommend_dir {
+        let file_path = dir.join("projects.json");
+        if file_path.exists() {
+            return Ok(file_path);
+        }
+
+        // If not exists anywhere, auto-create in the recommended directory
+        // 如果各处均不存在，在系统推荐目录中自动新建
+        fs::create_dir_all(&dir)
+            .map_err(|e| format!("Failed to create config directory / 创建配置目录失败: {}", e))?;
+        
+        // Write an initial empty array `[]`
+        // 写入初始空数组 `[]`
+        fs::write(&file_path, b"[]")
+            .map_err(|e| format!("Failed to initialize projects.json / 初始化 projects.json 失败: {}", e))?;
+        
+        Ok(file_path)
+    } else {
+        Err("Unable to determine user configuration directory / 无法确定用户配置目录位置".to_string())
+    }
+}
+
 /// Load projects list from `projects.json`
 /// 从 `projects.json` 加载项目列表
 #[tauri::command]
 fn load_projects() -> Result<Vec<Project>, String> {
     use std::fs::File;
     use std::io::Read;
-    use std::path::PathBuf;
 
-    // Check in current workspace directory first, then fallback to executable dir
-    // 首先检查当前工作目录，如果找不到则回退到可执行文件所在同级目录
-    let mut file_path = PathBuf::from("projects.json");
-    if !file_path.exists() {
-        if let Ok(exe_path) = std::env::current_exe() {
-            if let Some(exe_dir) = exe_path.parent() {
-                file_path = exe_dir.join("projects.json");
-            }
-        }
-    }
-
-    if !file_path.exists() {
-        return Err("projects.json not found / 未找到 projects.json 配置文件".to_string());
-    }
-
+    let file_path = resolve_projects_file_path()?;
     let mut file = File::open(file_path).map_err(|e| e.to_string())?;
     let mut contents = String::new();
     file.read_to_string(&mut contents).map_err(|e| e.to_string())?;
@@ -154,6 +201,75 @@ fn load_projects() -> Result<Vec<Project>, String> {
     let projects: Vec<Project> = serde_json::from_str(&contents)
         .map_err(|e| format!("JSON parsing failed / JSON 解析失败: {}", e))?;
     Ok(projects)
+}
+
+/// Load the raw JSON string of projects.json for editor
+/// 加载 projects.json 的原始 JSON 字符串以供编辑器使用
+#[tauri::command]
+fn load_projects_raw() -> Result<String, String> {
+    use std::fs::File;
+    use std::io::Read;
+
+    let file_path = resolve_projects_file_path()?;
+    let mut file = File::open(file_path).map_err(|e| e.to_string())?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).map_err(|e| e.to_string())?;
+    Ok(contents)
+}
+
+/// Save the raw JSON string after validating its format
+/// 校验格式并保存原始 JSON 字符串
+#[tauri::command]
+fn save_projects_raw(contents: String) -> Result<(), String> {
+    use std::fs::File;
+    use std::io::Write;
+
+    // Validate the JSON structure before saving to prevent corrupted files
+    // 保存前验证 JSON 结构，以防损坏配置文件
+    let _projects: Vec<Project> = serde_json::from_str(&contents)
+        .map_err(|e| format!("JSON Syntax Error / JSON 语法错误: {}", e))?;
+
+    let file_path = resolve_projects_file_path()?;
+    let mut file = File::create(file_path).map_err(|e| e.to_string())?;
+    file.write_all(contents.as_bytes()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Get the absolute resolved path of `projects.json`
+/// 获取 `projects.json` 解析后的绝对路径
+#[tauri::command]
+fn get_config_path() -> Result<String, String> {
+    let file_path = resolve_projects_file_path()?;
+    let abs_path = std::fs::canonicalize(&file_path)
+        .unwrap_or(file_path);
+    Ok(abs_path.to_string_lossy().into_owned())
+}
+
+/// Open the directory containing `projects.json` in system file manager
+/// 在操作系统文件管理器中打开 projects.json 所在的配置目录
+#[tauri::command]
+fn open_config_dir() -> Result<(), String> {
+    let file_path = resolve_projects_file_path()?;
+    let dir_path = file_path.parent()
+        .ok_or_else(|| "Failed to get config directory / 获取配置目录失败".to_string())?;
+        
+    if cfg!(target_os = "windows") {
+        Command::new("explorer")
+            .arg(dir_path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    } else if cfg!(target_os = "macos") {
+        Command::new("open")
+            .arg(dir_path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    } else {
+        Command::new("xdg-open")
+            .arg(dir_path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 /// Launch a single project
@@ -184,8 +300,12 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             load_projects,
+            load_projects_raw,
+            save_projects_raw,
+            get_config_path,
             launch_project,
-            batch_launch
+            batch_launch,
+            open_config_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
