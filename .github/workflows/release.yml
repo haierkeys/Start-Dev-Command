@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - '*'
 
 permissions:
   contents: write
@@ -108,7 +108,7 @@ jobs:
             echo "Please check GitHub repository Settings > Secrets and variables > Actions" >&2
             exit 1
           fi
-          
+
           RAW="${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}"
           # Target: Provide correct private key "file path" to Tauri CLI, avoiding parsing issues
           # 目标：提供正确的私钥“文件路径”给 Tauri CLI，避免内容解码歧义
