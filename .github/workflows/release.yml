@@ -159,10 +159,14 @@ jobs:
           echo "✅ Tauri signing key prepared"
 
       - name: Import Apple signing certificate
-        if: runner.os == 'macOS' && secrets.APPLE_CERTIFICATE != ''
+        if: runner.os == 'macOS'
         shell: bash
         run: |
           set -euo pipefail
+          if [ -z "${{ secrets.APPLE_CERTIFICATE }}" ]; then
+            echo "⚠️ No APPLE_CERTIFICATE secret configured, skipping Apple signing import"
+            exit 0
+          fi
           # Decode .p12 certificate from base64
           # 从 base64 解码 .p12 证书
           CERT_PATH="$RUNNER_TEMP/certificate.p12"
