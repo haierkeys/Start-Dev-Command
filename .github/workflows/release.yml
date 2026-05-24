@@ -436,38 +436,49 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path release-assets | Out-Null
           $VERSION = $env:GITHUB_REF_NAME  # e.g., v0.1.0
-          # Only pack MSI installer + .sig (for Updater)
-          # 仅打包 MSI 安装器 + .sig（用于更新器）
-          $msi = Get-ChildItem -Path 'src-tauri/target/release/bundle/msi' -Recurse -Include *.msi -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($null -eq $msi) {
-            # Fallback search
-            $msi = Get-ChildItem -Path 'src-tauri/target/release/bundle' -Recurse -Include *.msi -ErrorAction SilentlyContinue | Select-Object -First 1
-          }
-          if ($null -ne $msi) {
-            $dest = "start-dev-command-$VERSION-Windows.msi"
-            Copy-Item $msi.FullName (Join-Path release-assets $dest)
+
+          # Locate installer (.msi or .exe from bundle directory)
+          # 定位安装包（bundle 目录下的 .msi 或 .exe）
+          $installer = Get-ChildItem -Path 'src-tauri/target/release/bundle', 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle' -Recurse -Include *.msi, *.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          
+          if ($null -ne $installer) {
+            $ext = $installer.Extension.TrimStart('.')
+            $dest = "start-dev-command-$VERSION-Windows.$ext"
+            Copy-Item $installer.FullName (Join-Path release-assets $dest)
             Write-Host "Installer copied: $dest"
-            $sigPath = "$($msi.FullName).sig"
+            
+            $sigPath = "$($installer.FullName).sig"
             if (Test-Path $sigPath) {
               Copy-Item $sigPath (Join-Path release-assets ("$dest.sig"))
               Write-Host "Signature copied: $dest.sig"
             } else {
-              Write-Warning "Signature not found for $($msi.Name)"
+              Write-Warning "Signature not found for $($installer.Name)"
             }
           } else {
-            Write-Warning 'No Windows MSI installer found'
+            Write-Error 'No Windows installer (.msi or .exe) found in bundle directory'
           }
-          # Portable zip version (not participating in Updater)
-          # 绿色版（不参与自动更新）
+
+          # Portable version
+          # 绿色便携版
+          $exePath = $null
           $exeCandidates = @(
+            'src-tauri/target/release/start-dev-command.exe',
             'src-tauri/target/release/start_dev_command.exe',
+            'src-tauri/target/x86_64-pc-windows-msvc/release/start-dev-command.exe',
             'src-tauri/target/x86_64-pc-windows-msvc/release/start_dev_command.exe'
           )
-          $exePath = $exeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          foreach ($c in $exeCandidates) {
+            if (Test-Path $c) { $exePath = $c; break }
+          }
+          if ($null -eq $exePath) {
+            $found = Get-ChildItem -Path 'src-tauri/target/release', 'src-tauri/target/x86_64-pc-windows-msvc/release' -Filter *.exe -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*start*dev*" -and $_.FullName -notlike "*bundle*" } | Select-Object -First 1
+            if ($null -ne $found) { $exePath = $found.FullName }
+          }
+
           if ($null -ne $exePath) {
             $portableDir = 'release-assets/Start-Dev-Command-Portable'
             New-Item -ItemType Directory -Force -Path $portableDir | Out-Null
-            Copy-Item $exePath $portableDir
+            Copy-Item $exePath (Join-Path $portableDir "start-dev-command.exe")
             $portableIniPath = Join-Path $portableDir 'portable.ini'
             $portableContent = @(
               '# Start Dev Command portable build marker',
