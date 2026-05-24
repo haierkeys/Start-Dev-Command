@@ -265,19 +265,10 @@ jobs:
           mkdir -p release-assets
           VERSION="${GITHUB_REF_NAME}"  # e.g., v0.1.0
 
-          # Locate bundle artifacts
-          # 定位 bundle 构建产物
-          TAR_GZ=""; APP_PATH=""
-          for path in \
-            "src-tauri/target/universal-apple-darwin/release/bundle/macos" \
-            "src-tauri/target/aarch64-apple-darwin/release/bundle/macos" \
-            "src-tauri/target/x86_64-apple-darwin/release/bundle/macos" \
-            "src-tauri/target/release/bundle/macos"; do
-            if [ -d "$path" ]; then
-              [ -z "$TAR_GZ" ]   && TAR_GZ=$(find "$path" -maxdepth 1 -name "*.tar.gz" -type f | head -1 || true)
-              [ -z "$APP_PATH" ] && APP_PATH=$(find "$path" -maxdepth 1 -name "*.app" -type d | head -1 || true)
-            fi
-          done
+          # Locate bundle artifacts recursively under workspace (supporting custom target dirs like 'build')
+          # 在工作空间下递归定位 bundle 构建产物（支持像 'build' 这样的自定义 target 目录）
+          TAR_GZ=$(find . -name "*.tar.gz" -path "*bundle*" ! -path "*node_modules*" ! -path "*release-assets*" | head -1 || true)
+          APP_PATH=$(find . -name "*.app" -path "*bundle*" -type d ! -path "*node_modules*" ! -path "*release-assets*" | head -1 || true)
 
           if [ -z "$TAR_GZ" ]; then
             echo "❌ No macOS .tar.gz updater artifact found" >&2
@@ -506,20 +497,20 @@ jobs:
           mkdir -p release-assets
           VERSION="${GITHUB_REF_NAME}"  # e.g., v0.1.0
           ARCH="${{ matrix.arch || 'x86_64' }}"
-          # Updater artifact: AppImage + .sig
-          # 更新器资源：AppImage 以及对应的 .sig
-          APPIMAGE=$(find src-tauri/target/release/bundle -name "*.AppImage" | head -1 || true)
+          # Updater artifact: AppImage + .sig (searching recursively under workspace for custom target dirs)
+          # 更新器资源：AppImage 以及对应的 .sig（在工作区下递归搜索以支持自定义 target 目录）
+          APPIMAGE=$(find . -name "*.AppImage" -path "*bundle*" ! -path "*node_modules*" ! -path "*release-assets*" | head -1 || true)
           if [ -n "$APPIMAGE" ]; then
             NEW_APPIMAGE="start-dev-command-${VERSION}-Linux-${ARCH}.AppImage"
             cp "$APPIMAGE" "release-assets/$NEW_APPIMAGE"
             [ -f "$APPIMAGE.sig" ] && cp "$APPIMAGE.sig" "release-assets/$NEW_APPIMAGE.sig" || echo ".sig for AppImage not found"
             echo "AppImage copied: $NEW_APPIMAGE"
           else
-            echo "No AppImage found under target/release/bundle" >&2
+            echo "No AppImage found in bundle directories" >&2
           fi
           # Extra upload: .deb package for manual installation (non-updater)
           # 额外上传 .deb（用于手动安装，不参与更新器）
-          DEB=$(find src-tauri/target/release/bundle -name "*.deb" | head -1 || true)
+          DEB=$(find . -name "*.deb" -path "*bundle*" ! -path "*node_modules*" ! -path "*release-assets*" | head -1 || true)
           if [ -n "$DEB" ]; then
             cp "$DEB" "release-assets/start-dev-command-${VERSION}-Linux-${ARCH}.deb"
             echo "Deb package copied: start-dev-command-${VERSION}-Linux-${ARCH}.deb"
@@ -528,7 +519,7 @@ jobs:
           fi
           # Extra upload: .rpm package (non-updater)
           # 额外上传 .rpm（不参与更新器）
-          RPM=$(find src-tauri/target/release/bundle -name "*.rpm" | head -1 || true)
+          RPM=$(find . -name "*.rpm" -path "*bundle*" ! -path "*node_modules*" ! -path "*release-assets*" | head -1 || true)
           if [ -n "$RPM" ]; then
             cp "$RPM" "release-assets/start-dev-command-${VERSION}-Linux-${ARCH}.rpm"
             echo "RPM package copied: start-dev-command-${VERSION}-Linux-${ARCH}.rpm"
