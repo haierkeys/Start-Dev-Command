@@ -437,9 +437,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path release-assets | Out-Null
           $VERSION = $env:GITHUB_REF_NAME  # e.g., v0.1.0
 
-          # Locate installer (.msi or .exe from bundle directory)
-          # 定位安装包（bundle 目录下的 .msi 或 .exe）
-          $installer = Get-ChildItem -Path 'src-tauri/target/release/bundle', 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle' -Recurse -Include *.msi, *.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          # Locate installer (.msi or .exe from any bundle directory under target)
+          # 从 target 目录下的任意 bundle 子文件夹定位安装包（.msi 或 .exe）
+          $installer = Get-ChildItem -Path 'src-tauri/target' -Recurse -Include *.msi, *.exe -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*bundle*" } | Select-Object -First 1
           
           if ($null -ne $installer) {
             $ext = $installer.Extension.TrimStart('.')
@@ -471,7 +471,7 @@ jobs:
             if (Test-Path $c) { $exePath = $c; break }
           }
           if ($null -eq $exePath) {
-            $found = Get-ChildItem -Path 'src-tauri/target/release', 'src-tauri/target/x86_64-pc-windows-msvc/release' -Filter *.exe -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*start*dev*" -and $_.FullName -notlike "*bundle*" } | Select-Object -First 1
+            $found = Get-ChildItem -Path 'src-tauri/target' -Filter *.exe -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*start*dev*" -and $_.FullName -notlike "*bundle*" } | Select-Object -First 1
             if ($null -ne $found) { $exePath = $found.FullName }
           }
 
