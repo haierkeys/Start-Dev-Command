@@ -490,20 +490,6 @@ jobs:
               'portable=true'
             )
             $portableContent | Set-Content -Path $portableIniPath -Encoding UTF8
-            $portableZip = "release-assets/start-dev-command-$VERSION-Windows-Portable.zip"ev*" -and $_.FullName -notlike "*bundle*" } | Select-Object -First 1
-            if ($null -ne $found) { $exePath = $found.FullName }
-          }
-
-          if ($null -ne $exePath) {
-            $portableDir = 'release-assets/Start-Dev-Command-Portable'
-            New-Item -ItemType Directory -Force -Path $portableDir | Out-Null
-            Copy-Item $exePath (Join-Path $portableDir "start-dev-command.exe")
-            $portableIniPath = Join-Path $portableDir 'portable.ini'
-            $portableContent = @(
-              '# Start Dev Command portable build marker',
-              'portable=true'
-            )
-            $portableContent | Set-Content -Path $portableIniPath -Encoding UTF8
             $portableZip = "release-assets/start-dev-command-$VERSION-Windows-Portable.zip"
             Compress-Archive -Path "$portableDir/*" -DestinationPath $portableZip -Force
             Remove-Item -Recurse -Force $portableDir
