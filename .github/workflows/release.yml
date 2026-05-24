@@ -233,7 +233,7 @@ jobs:
               fi
             else
               echo "⚠️ No Apple signing identity configured, falling back to unsigned build"
-              if pnpm tauri build --target universal-apple-darwin; then
+              if pnpm tauri build --target universal-apple-darwin --no-sign; then
                 echo "✅ macOS unsigned build succeeded"
                 exit 0
               fi
