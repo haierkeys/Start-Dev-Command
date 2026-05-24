@@ -270,10 +270,6 @@ jobs:
           TAR_GZ=$(find . -name "*.tar.gz" -path "*bundle*" ! -path "*node_modules*" ! -path "*release-assets*" | head -1 || true)
           APP_PATH=$(find . -name "*.app" -path "*bundle*" -type d ! -path "*node_modules*" ! -path "*release-assets*" | head -1 || true)
 
-          if [ -z "$TAR_GZ" ]; then
-            echo "❌ No macOS .tar.gz updater artifact found" >&2
-            exit 1
-          fi
           if [ -z "$APP_PATH" ]; then
             echo "❌ No .app found" >&2
             exit 1
@@ -286,12 +282,16 @@ jobs:
             echo "✅ .app stapled"
           fi
 
-          # 1) Collect .tar.gz (updater artifact)
-          # 1) 收集 .tar.gz（更新器资源）
-          NEW_TAR_GZ="start-dev-command-${VERSION}-macOS.tar.gz"
-          cp "$TAR_GZ" "release-assets/$NEW_TAR_GZ"
-          [ -f "$TAR_GZ.sig" ] && cp "$TAR_GZ.sig" "release-assets/$NEW_TAR_GZ.sig" || echo ".sig for macOS not found yet"
-          echo "macOS updater artifact copied: $NEW_TAR_GZ"
+          # 1) Collect .tar.gz (updater artifact) if exists
+          # 1) 收集 .tar.gz（更新器资源）- 如果存在
+          if [ -n "$TAR_GZ" ]; then
+            NEW_TAR_GZ="start-dev-command-${VERSION}-macOS.tar.gz"
+            cp "$TAR_GZ" "release-assets/$NEW_TAR_GZ"
+            [ -f "$TAR_GZ.sig" ] && cp "$TAR_GZ.sig" "release-assets/$NEW_TAR_GZ.sig" || echo ".sig for macOS not found yet"
+            echo "macOS updater artifact copied: $NEW_TAR_GZ"
+          else
+            echo "⚠️ No macOS .tar.gz updater artifact found (optional)"
+          fi
 
           # 2) Collect .app as zip
           # 2) 收集 .app 为 zip 压缩包
