@@ -41,9 +41,20 @@ export const Header: React.FC<HeaderProps> = ({
   const isDark = theme === "dark";
   const isEditView = currentView === "edit";
 
+  const [isMac, setIsMac] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && navigator.userAgent.includes("Mac")) {
+      setIsMac(true);
+    }
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between py-3.5 px-6 border-b transition-colors duration-300 shrink-0
-      bg-background/95 border-[hsl(var(--border))] backdrop-blur-md"
+    <header 
+      data-tauri-drag-region
+      className={`sticky top-0 z-40 flex items-center justify-between px-6 border-b transition-colors duration-300 shrink-0
+        bg-background/95 border-[hsl(var(--border))] backdrop-blur-md
+        ${isMac ? "pt-8 pb-3.5" : "py-3.5"}`}
     >
 
       {/* Brand logo & title / Back Navigation Button */}
@@ -70,7 +81,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-blue-500 dark:text-blue-400">
               {isEditView ? (isJsonMode ? "数据配置" : (isCreatingNew ? "项目创建" : "系统设置")) : "开发工作空间"}
             </span>
-            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
           </div>
           <h1 className="text-lg font-bold tracking-tight text-foreground">
             {isEditView ? (isJsonMode ? "编辑JSON源数据" : (isCreatingNew ? "新建项目" : "编辑项目")) : "控制面板"}

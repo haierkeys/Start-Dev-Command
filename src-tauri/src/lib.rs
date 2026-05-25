@@ -95,7 +95,7 @@ fn launch_project_internal(p: &Project) -> Result<(), String> {
         }
     } else if cfg!(target_os = "macos") {
         let mac_shell = p.mac_shell.as_deref().unwrap_or("default");
-        match mac_shell {
+        let status = match mac_shell {
             "iterm2" => {
                 let script = format!(
                     "tell application \"iTerm\"\ncreate window with default profile\ntell current session of current window\nwrite text \"cd {}\"\nwrite text \"{}\"\nend tell\nend tell",
@@ -103,8 +103,7 @@ fn launch_project_internal(p: &Project) -> Result<(), String> {
                 );
                 Command::new("osascript")
                     .args(&["-e", &script])
-                    .spawn()
-                    .map_err(|e| format!("Failed to launch iTerm2: {}", e))?;
+                    .status()
             }
             _ => { // default Terminal.app
                 let script = format!(
@@ -113,9 +112,12 @@ fn launch_project_internal(p: &Project) -> Result<(), String> {
                 );
                 Command::new("osascript")
                     .args(&["-e", &script])
-                    .spawn()
-                    .map_err(|e| format!("Failed to launch Terminal: {}", e))?;
+                    .status()
             }
+        }.map_err(|e| format!("Failed to execute osascript: {}", e))?;
+
+        if !status.success() {
+            return Err(format!("osascript failed with exit code: {:?}", status.code()));
         }
     } else {
         return Err("Unsupported OS / 不支持的系统".to_string());
@@ -284,7 +286,14 @@ fn launch_project(project: Project) -> Result<(), String> {
 #[tauri::command]
 fn batch_launch(projects: Vec<Project>) -> Result<u32, String> {
     let mut count = 0;
-    for p in &projects {
+    let is_macos = cfg!(target_os = "macos");
+    for (i, p) in projects.iter().enumerate() {
+        // 如果在 macOS 上且不是第一个项目，延迟 300 毫秒。
+        // 因为我们改用了同步阻塞的 .status() 等待，此处仅需 300ms 即可提供完美的双保险缓冲
+        // Sleep for 300ms on macOS. Combined with blocking .status() waiting, this is highly stable and fast
+        if is_macos && i > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(300));
+        }
         if let Err(e) = launch_project_internal(p) {
             eprintln!("Failed to launch project {}: {}", p.name, e);
         } else {

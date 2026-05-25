@@ -32,9 +32,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   const accentText = "text-blue-600 dark:text-blue-400";
   const accentBg = "bg-blue-50/60 dark:bg-blue-500/10";
   
-  // Custom shell badges with premium light/dark responsive HSL border tints
-  // 高端自适应 Shell 类型徽章，轻奢半透明微光边框
-  const getShellBadge = () => {
+  // 获取 Windows 平台的 Shell 徽章信息
+  // Get Windows platform shell badge info
+  const getWinShellBadge = () => {
     if (project.win_shell === "wsl") {
       return { 
         label: `WSL (${project.wsl_shell || "zsh"})`, 
@@ -49,11 +49,27 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     }
     return { 
       label: "CMD", 
-      color: "bg-muted text-muted-foreground border-[hsl(var(--border))]" 
+      color: "bg-slate-500/5 text-slate-500 border-slate-500/15" 
     };
   };
 
-  const badge = getShellBadge();
+  // 获取 macOS 平台的 Shell 徽章信息
+  // Get macOS platform shell badge info
+  const getMacShellBadge = () => {
+    if (project.mac_shell === "iterm2") {
+      return { 
+        label: "iTerm2 (mac)", 
+        color: "bg-amber-500/5 text-amber-500 border-amber-500/15" 
+      };
+    }
+    return { 
+      label: "Terminal (mac)", 
+      color: "bg-emerald-500/5 text-emerald-500 border-emerald-500/15" 
+    };
+  };
+
+  const winBadge = getWinShellBadge();
+  const macBadge = getMacShellBadge();
 
   return (
     <div
@@ -108,11 +124,13 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             <h3 className="text-xs.5 font-bold truncate transition-colors text-foreground">
               {project.name}
             </h3>
-            <span className={`text-[8px] font-extrabold tracking-[0.1em] px-1.5 py-0.5 rounded-md flex-shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${accentBg} ${accentText}`}>
-              PROJ
+            {/* Windows Shell 徽章 */}
+            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md border flex-shrink-0 backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-colors ${winBadge.color}`}>
+              {winBadge.label}
             </span>
-            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md border flex-shrink-0 backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-colors ${badge.color}`}>
-              {badge.label}
+            {/* macOS Shell 徽章 */}
+            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md border flex-shrink-0 backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition-colors ${macBadge.color}`}>
+              {macBadge.label}
             </span>
           </div>
 

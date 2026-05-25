@@ -557,7 +557,7 @@ function App() {
   };
 
   return (
-    <div className={`flex flex-col h-screen transition-luxury selection:bg-blue-500/30 selection:text-blue-200
+    <div className={`flex flex-col h-screen transition-luxury selection:bg-blue-500/30 selection:text-blue-800 dark:selection:text-blue-200
       bg-background text-foreground
       tech-grid relative overflow-hidden
       ${theme === "dark" ? "dark" : ""}`}
