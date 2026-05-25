@@ -325,6 +325,9 @@ jobs:
             echo "✅ Signed and styled DMG created: $NEW_DMG"
           else
             echo "⚠️ Creating unsigned DMG without custom styling/signing"
+            # Manually create the symlink to Applications folder for user convenience
+            # 手动创建指向 Applications 文件夹的软链接，方便用户拖拽安装
+            ln -s /Applications "$DMG_STAGE_DIR/Applications"
             # Fallback to a simple hdiutil DMG if create-dmg isn't required for unsigned releases
             # 对于未签名的版本，创建一个简易的 hdiutil dmg
             hdiutil create -fs HFS+ -srcfolder "$DMG_STAGE_DIR" -volname "Start Dev Command" "release-assets/$NEW_DMG"
