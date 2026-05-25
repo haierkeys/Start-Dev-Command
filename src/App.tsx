@@ -171,13 +171,14 @@ function App() {
   }, [rawJson, editMode, currentView]);
 
   // Safe flush on exit / 返回仪表盘时的安全写盘逻辑，确保数据零丢失与空白临时卡片净化
-  const handleBackToDashboard = async () => {
-    let finalGuiProjects = guiProjects;
+  // Support passing updatedProjects to circumvent stale state closure / 支持传入更新后的项目列表，绕过 React 异步状态闭包
+  const handleBackToDashboard = async (updatedProjects?: Project[]) => {
+    let finalGuiProjects = updatedProjects !== undefined ? updatedProjects : guiProjects;
     
     // Automatic cleanup: If the active edit card is a brand new project and was left entirely blank,
     // silently filter it out upon exit to keep the configuration clean and tidy.
     // 自动净化逻辑：如果当前处于活跃编辑的卡片是一个全新临时创建且被完全留空的占位卡片，则在返回时静默剔除
-    if (editMode === "gui" && activeEditIndex !== null && activeEditIndex < guiProjects.length) {
+    if (updatedProjects === undefined && editMode === "gui" && activeEditIndex !== null && activeEditIndex < guiProjects.length) {
       const p = guiProjects[activeEditIndex];
       const isTempName = !p.name || p.name.startsWith("新项目-");
       const isEmptyPaths = !p.windows_path && !p.mac_path;
@@ -282,8 +283,8 @@ function App() {
   };
 
   // Open edit modal and load raw projects.json text
-  // 打开编辑弹窗并获取原始 JSON 文本内容
-  const handleOpenEditModal = async (initialMode?: "gui" | "json" | "new") => {
+  // Support specifying initial active index to edit / 支持指定初始激活的编辑项目索引
+  const handleOpenEditModal = async (initialMode?: "gui" | "json" | "new", initialIndex?: number) => {
     try {
       setLoading(true);
       isPreventSaveRef.current = true; // Block auto-save during loading phase
@@ -323,7 +324,7 @@ function App() {
           setIsCreatingNew(false);
           setGuiProjects(baseProjects);
           setEditMode(initialMode || "gui");
-          setActiveEditIndex(0);
+          setActiveEditIndex(initialIndex !== undefined ? initialIndex : 0);
         }
       } catch (e) {
         // Fallback or recovery when original JSON is corrupted
@@ -367,11 +368,12 @@ function App() {
 
   // Open edit modal for a single project card and trigger smooth scroll locking
   // 为特定项目卡片打开编辑面板并标记以触发顺滑定位
+  // Pass index parameter to keep the active edit index correct / 传入 index 参数以保持编辑索引正确
   const handleEditSingleProject = async (index: number) => {
     setIsCreatingNew(false);
     setActiveEditIndex(index);
     setScrollTargetIndex(index);
-    await handleOpenEditModal();
+    await handleOpenEditModal(undefined, index);
   };
 
   // Save config to file (supports both GUI and JSON modes)
@@ -432,11 +434,13 @@ function App() {
 
   // Delete current editing project from header action
   // 从顶部 Header 点击删除当前编辑的项目
+  // Pass updated array directly to circumvent stale state closure / 直接传入删除后的新数组以绕过 React 异步状态闭包
   const handleDeleteCurrentProject = () => {
     if (activeEditIndex !== null) {
-      handleRemoveGuiProject(activeEditIndex);
+      const updated = guiProjects.filter((_, idx) => idx !== activeEditIndex);
+      setGuiProjects(updated);
       setActiveEditIndex(null);
-      handleBackToDashboard();
+      handleBackToDashboard(updated);
     }
   };
 
