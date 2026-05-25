@@ -41,20 +41,9 @@ export const Header: React.FC<HeaderProps> = ({
   const isDark = theme === "dark";
   const isEditView = currentView === "edit";
 
-  const [isMac, setIsMac] = React.useState(false);
-
-  React.useEffect(() => {
-    if (typeof window !== "undefined" && navigator.userAgent.includes("Mac")) {
-      setIsMac(true);
-    }
-  }, []);
-
   return (
-    <header 
-      data-tauri-drag-region
-      className={`sticky top-0 z-40 flex items-center justify-between px-6 border-b transition-colors duration-300 shrink-0
-        bg-background/95 border-[hsl(var(--border))] backdrop-blur-md
-        ${isMac ? "pt-8 pb-3.5" : "py-3.5"}`}
+    <header className="sticky top-0 z-40 flex items-center justify-between py-3.5 px-6 border-b transition-colors duration-300 shrink-0
+      bg-background/95 border-[hsl(var(--border))] backdrop-blur-md"
     >
 
       {/* Brand logo & title / Back Navigation Button */}
